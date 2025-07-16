@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.ArrayDeque;
-import java.util.Deque;
 
 import org.htmlunit.BrowserVersion;
 import org.htmlunit.ObjectInstantiationException;
@@ -32,6 +30,7 @@ import org.htmlunit.cyberneko.HTMLConfiguration;
 import org.htmlunit.cyberneko.HTMLElements;
 import org.htmlunit.cyberneko.HTMLScanner;
 import org.htmlunit.cyberneko.HTMLTagBalancingListener;
+import org.htmlunit.cyberneko.util.MiniStack;
 import org.htmlunit.cyberneko.xerces.parsers.AbstractSAXParser;
 import org.htmlunit.cyberneko.xerces.xni.Augmentations;
 import org.htmlunit.cyberneko.xerces.xni.QName;
@@ -119,7 +118,7 @@ final class HtmlUnitNekoDOMBuilder extends AbstractSAXParser
     private final HtmlPage page_;
 
     private Locator locator_;
-    private final Deque<DomNode> stack_ = new ArrayDeque<>();
+    private final MiniStack<DomNode> stack_ = new MiniStack<>();
 
     /** Did the snippet tried to overwrite the start node? */
     private boolean snippetStartNodeOverwritten_;
@@ -416,18 +415,25 @@ final class HtmlUnitNekoDOMBuilder extends AbstractSAXParser
     }
 
     private DomNode findElementOnStack(final String searchedElementName) {
-        for (final DomNode node : stack_) {
+        final int size = stack_.size();
+        
+        for (int i = 0; i < size; i++) {
+            final DomNode node = stack_.get(i);
+
             if (searchedElementName.equals(node.getNodeName())) {
                 return node;
             }
         }
 
-        // this is surely wrong but at least it won't throw a NPE
-        return stack_.peek();
+        return null;
     }
 
     private DomNode findElementOnStack(final String... searchedElementNames) {
-        for (final DomNode node : stack_) {
+        final int size = stack_.size();
+
+        for (int i = 0; i < size; i++) {
+            final DomNode node = stack_.get(i);
+
             for (final String searchedElementName : searchedElementNames) {
                 if (searchedElementName.equals(node.getNodeName())) {
                     return node;
@@ -435,8 +441,7 @@ final class HtmlUnitNekoDOMBuilder extends AbstractSAXParser
             }
         }
 
-        // this is surely wrong but at least it won't throw a NPE
-        return stack_.peek();
+        return null;
     }
 
     private static boolean isTableChild(final String nodeName) {
